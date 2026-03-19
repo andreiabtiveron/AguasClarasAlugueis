@@ -29,9 +29,9 @@ O projeto utiliza dois modelos principais.
 
 A acessibilidade é calculada com base na distância entre imóveis e serviços urbanos.
 
-[
-A = \frac{1}{(d + \epsilon)^\beta}
-]
+
+$$A = \frac{1}{(d + \epsilon)^\beta}
+
 
 Onde:
 
@@ -230,7 +230,7 @@ A cor do círculo indica a qualidade de vida:
 
 ---
 
-# ⚙️ Instalação
+# Instalação
 
 Criar ambiente virtual:
 
