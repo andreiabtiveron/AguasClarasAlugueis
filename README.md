@@ -47,7 +47,7 @@ Esse modelo assume que **serviços mais próximos têm maior influência na qual
 
 Após calcular a acessibilidade por categoria de serviço, o sistema gera o índice final de qualidade de vida:
 
-[
+$$
 QV =
 hospital^{0.4}
 \cdot
@@ -56,7 +56,7 @@ school^{0.3}
 park^{0.2}
 \cdot
 pharmacy^{0.1}
-]
+$$
 
 Os pesos representam a importância relativa de cada serviço urbano.
 
@@ -64,13 +64,13 @@ Também é calculado um segundo indicador:
 
 **IAR — Índice de Atratividade Residencial**
 
-[
+$$
 IAR =
 0.4 \cdot hospital +
 0.3 \cdot school +
 0.2 \cdot park +
 0.1 \cdot pharmacy
-]
+$$
 
 ---
 
