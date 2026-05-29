@@ -5,3 +5,17 @@ cache/
 *.pyo
 *.pyd
 .DS_Store
+
+# artefatos gerados pelo pipeline
+*.db
+imovel.csv
+facility.csv
+categoria_facility.csv
+proximidade.csv
+ranking_*.csv
+centralidades.csv
+dicionario_dados.csv
+dicionario_dados.md
+mapa_qualidade_vida_ac.html
+gerar_artigo.py
+diagrama_automato.png
