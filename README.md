@@ -1,315 +1,143 @@
-# Imóveis e Infraestrutura Urbana para Qualidade de Vida — Águas Claras (DF)
+# PropTech Águas Claras — Recomendação Imobiliária Orientada à Qualidade de Vida
 
-Projeto em Python para análise de **qualidade de vida urbana aplicada ao mercado imobiliário**, utilizando dados de infraestrutura urbana do OpenStreetMap e um modelo de acessibilidade espacial.
+Modelo computacional de apoio à decisão imobiliária para **Águas Claras/DF**, que
+recomenda imóveis com base em critérios objetivos de **qualidade de vida**. O
+projeto articula três pilares:
 
-O sistema calcula índices de **atratividade residencial** para imóveis na região de Águas Claras (Brasília – DF) com base na proximidade a serviços urbanos essenciais.
+1. **Teoria da Computação** — o pipeline de recomendação é formalizado como um
+   **autômato finito determinístico (AFD)**;
+2. **Modelo relacional** — imóveis e *facilities* urbanas estruturados em tabelas
+   (CSV + banco SQLite) com integridade referencial;
+3. **Teoria dos grafos** — imóveis e serviços modelados como um grafo bipartido,
+   analisado por **escore multicritério por perfil** e **PageRank**.
 
-O resultado final é um **mapa interativo** que permite visualizar imóveis e infraestrutura urbana simultaneamente.
+O resultado é um **ranking de imóveis por perfil de morador** e um **mapa
+interativo** das facilities.
 
----
-
-# Objetivo
-
-Avaliar **a qualidade de vida associada a imóveis urbanos** considerando a proximidade a serviços essenciais, como:
-
-* hospitais
-* escolas
-* parques
-* farmácias
-
-A hipótese central é que **quanto maior a acessibilidade a serviços urbanos, maior a qualidade de vida associada ao imóvel**.
-
----
-
-# Modelo de Análise
-
-O projeto utiliza dois modelos principais.
-
-## Modelo de Acessibilidade Gravitacional
-
-A acessibilidade é calculada com base na distância entre imóveis e serviços urbanos.
-
-
-$$A = \frac{1}{(d + \epsilon)^\beta}$$
-
-
-Onde:
-
-* **d** = distância entre imóvel e serviço
-* **β** = coeficiente de decaimento espacial (1.5 no projeto)
-* **ε** = constante pequena para evitar divisão por zero
-
-Esse modelo assume que **serviços mais próximos têm maior influência na qualidade urbana**.
+> **Nota sobre os dados:** as facilities são coletadas do OpenStreetMap; os
+> imóveis ainda são **simulados** (`scraper_imoveis.py`). A substituição por
+> coleta real (web scraping) é o próximo passo previsto.
 
 ---
 
-## Índice de Qualidade de Vida (Cobb-Douglas)
-
-Após calcular a acessibilidade por categoria de serviço, o sistema gera o índice final de qualidade de vida:
-
-$$
-QV =
-hospital^{0.4}
-\cdot
-school^{0.3}
-\cdot
-park^{0.2}
-\cdot
-pharmacy^{0.1}
-$$
-
-Os pesos representam a importância relativa de cada serviço urbano.
-
-Também é calculado um segundo indicador:
-
-**IAR — Índice de Atratividade Residencial**
-
-$$
-IAR =
-0.4 \cdot hospital +
-0.3 \cdot school +
-0.2 \cdot park +
-0.1 \cdot pharmacy
-$$
-
----
-
-# Estrutura do Projeto
+## Arquitetura e fluxo
 
 ```
-AguasClarasAlugueis/
-│
-├── main.py
-├── extracao_infra.py
-├── scraper_imoveis.py
-├── geocodificacao.py
-├── modelagem.py
-├── mapa.py
-└── mapa_qualidade_vida_ac.html
+extracao_infra.py   ──┐  (facilities do OpenStreetMap)
+scraper_imoveis.py  ──┤  (imóveis — simulados por ora)
+                      ▼
+geocodificacao.py     │  distâncias imóvel × serviço
+modelagem_grafo.py    │  grafo + pesos w(i,f)=1/(1+d) + perfis + PageRank
+persistencia.py       │  tabelas relacionais (CSV + SQLite) + dicionário + limpeza
+automato.py           │  AFD que valida a ordem das etapas do pipeline
+mapa.py               │  mapa interativo (Folium)
+                      ▼
+main.py               =  orquestra todo o pipeline
+gerar_artigo.py       =  gera o artigo acadêmico (.docx) com resultados reais
+diagrama_automato.py  =  gera o diagrama de estados do AFD (figura do artigo)
 ```
 
----
-
-# Descrição dos Arquivos
-
-## `main.py`
-
-Arquivo principal que executa todo o pipeline do projeto.
-
-Fluxo de execução:
-
-1. Coleta infraestrutura urbana do OpenStreetMap
-2. Geração de dataset de imóveis
-3. Cálculo de distâncias entre imóveis e serviços
-4. Cálculo de acessibilidade urbana
-5. Cálculo dos índices IAR e QV
-6. Geração do mapa interativo
+O **autômato** (`automato.py`) reconhece a linguagem `L(M) = { c i g b r }`:
+coletar infra → coletar imóveis → geocodificar → construir grafo → gerar ranking.
+Qualquer ordem inválida cai no estado-armadilha `qE`, garantindo que o sistema
+nunca entregue um ranking sem cumprir todas as etapas.
 
 ---
 
-## `extracao_infra.py`
+## Modelos formais
 
-Responsável por extrair infraestrutura urbana utilizando a biblioteca **OSMnx**.
-
-Serviços coletados:
-
-* hospitais
-* escolas
-* universidades
-* farmácias
-* parques
-* áreas de recreação
-
-Os dados são convertidos para **centroides geográficos**, garantindo consistência na análise espacial.
-
----
-
-## `scraper_imoveis.py`
-
-Gera um **dataset simulado de imóveis** na região de Águas Claras.
-
-Cada imóvel possui:
-
-* preço
-* área
-* coordenadas geográficas
-
-Os imóveis são distribuídos aleatoriamente em torno do centro da região.
-
-Essa abordagem permite demonstrar o funcionamento do modelo sem depender de scraping externo.
-
----
-
-## `geocodificacao.py`
-
-Calcula a **matriz de distâncias** entre:
-
-* imóveis
-* serviços urbanos
-
-Utiliza a função `cdist` da biblioteca **SciPy**.
-
-Também gera um **score inicial de acessibilidade** baseado na proximidade ao serviço mais próximo.
-
----
-
-## `modelagem.py`
-
-Contém a classe **MotorUrbano**, responsável por toda a modelagem urbana.
-
-Principais funções:
-
-* cálculo de acessibilidade por categoria
-* normalização das variáveis
-* cálculo dos índices finais
-
-Indicadores produzidos:
-
-* **IAR** — Índice de Atratividade Residencial
-* **QV** — Índice de Qualidade de Vida
-
----
-
-## `mapa.py`
-
-Gera um **mapa interativo** utilizando a biblioteca **Folium**.
-
-Elementos exibidos no mapa:
-
-* marcadores para infraestrutura urbana
-* círculos representando imóveis
-* coloração baseada no índice de qualidade de vida
-* popups com informações do imóvel
-
-O mapa é salvo automaticamente como:
+### Peso da aresta (função inversa da distância)
 
 ```
-mapa_qualidade_vida_ac.html
+w(i, f) = 1 / (1 + d(i, f))
 ```
 
----
+onde `d(i, f)` é a distância (Haversine) entre o imóvel `i` e a facility `f`.
+Uma aresta só é criada quando `d < limiar` (padrão: 1500 m).
 
-# Interpretação do Mapa
-
-No mapa interativo:
-
-### Infraestrutura urbana
-
-Marcadores coloridos representam serviços:
-
-| Cor         | Serviço  |
-| ----------- | -------- |
-| 🔴 vermelho | hospital |
-| 🔵 azul     | escola   |
-| 🟢 verde    | parque   |
-| 🟠 laranja  | farmácia |
-
----
-
-### Imóveis
-
-Círculos representam imóveis.
-
-Ao clicar em um imóvel são exibidos:
-
-* preço
-* área
-* índice de qualidade de vida (QV)
-
----
-
-### Escala de cores
-
-A cor do círculo indica a qualidade de vida:
-
-| Cor         | Interpretação           |
-| ----------- | ----------------------- |
-| 🟡 amarelo  | menor acessibilidade    |
-| 🟠 laranja  | média                   |
-| 🔴 vermelho | maior qualidade de vida |
-
----
-
-# Instalação
-
-Criar ambiente virtual:
+### Escore multicritério por perfil
 
 ```
+score(i) = α·E(i) + β·S(i) + γ·H(i) + δ·L(i) − λ·C(i)
+```
+
+`E, S, H, L` são as acessibilidades a educação, saúde, comércio/serviços e lazer;
+`C` é o custo de moradia (penalização). Os pesos dependem do **perfil-alvo**
+(família, idoso, estudante, jovem profissional), definidos em `modelagem_grafo.PERFIS`.
+
+---
+
+## Modelo relacional
+
+Quatro tabelas, exportadas em **CSV** e em banco **SQLite** (`aguas_claras.db`)
+com chaves primárias e estrangeiras:
+
+| Tabela | Chave | Conteúdo |
+| --- | --- | --- |
+| `imovel` | `id_imovel` | tipo, finalidade, preço, área, quartos, banheiros, vagas, condomínio, geolocalização, fonte |
+| `facility` | `id_facility` | nome, categoria (FK), endereço, geolocalização |
+| `categoria_facility` | `id_categoria` | nome da categoria |
+| `proximidade` | (`id_imovel`, `id_facility`) | distância, tempo estimado, peso relacional |
+
+A limpeza aplica 7 regras (chave nula, duplicatas, tipos, domínio, coordenadas,
+texto, integridade referencial). O **dicionário de dados** é gerado em
+`dicionario_dados.csv` / `.md`.
+
+---
+
+## Instalação
+
+```bash
 python -m venv venv
-source venv/bin/activate
-```
-
-Instalar dependências:
-
-```
-pip install osmnx geopandas folium branca numpy scipy pandas
+source venv/bin/activate          # bash/zsh
+# fish: source venv/bin/activate.fish
+pip install -r requirements.txt
 ```
 
 ---
 
-# Execução
+## Execução
 
-Execute o projeto com:
+### Pipeline completo (coleta real de facilities + mapa)
 
-```
+```bash
 python main.py
 ```
 
-O sistema irá:
+Gera os CSVs, o banco `aguas_claras.db`, os rankings por perfil
+(`ranking_<perfil>.csv`), as centralidades e o mapa `mapa_qualidade_vida_ac.html`.
 
-1. coletar infraestrutura urbana
-2. gerar imóveis simulados
-3. calcular acessibilidade
-4. gerar o mapa interativo
+### Componentes isolados (sem dependências pesadas)
 
-Ao final será aberto automaticamente:
-
+```bash
+python automato.py          # demonstra o AFD e a tabela de transição
+python modelagem_grafo.py   # grafo, ranking por perfil e PageRank (dados sintéticos)
+python persistencia.py      # tabelas relacionais + SQLite (dados sintéticos)
+python diagrama_automato.py # diagrama de estados do autômato (PNG)
+python gerar_artigo.py      # gera o artigo .docx com resultados reais
 ```
-mapa_qualidade_vida_ac.html
-```
 
 ---
 
-# Possíveis Extensões
+## Artigo
 
-O projeto pode ser expandido com:
-
-* dados reais de imóveis
-* cálculo de **tempo de deslocamento** em vez de distância
-* integração com transporte público
-* análise de **preço por m²**
-* modelos de machine learning para valorização imobiliária
-* dashboards interativos
+`gerar_artigo.py` produz **`Artigo_QualidadeVida_AguasClaras.docx`** com as nove
+seções exigidas (Introdução, Fundamentação teórica, Modelagem formal, Metodologia,
+Resultados, Discussão, Conclusão, Referências, Bibliografia), fórmulas, o diagrama
+do autômato e a seção de **Resultados alimentada por números reais** da execução
+do pipeline — garantindo reprodutibilidade e consistência entre artigo e código.
 
 ---
 
-# Tecnologias Utilizadas
+## Tecnologias
 
-* Python
-* OSMnx
-* GeoPandas
-* Folium
-* NumPy
-* SciPy
-* Pandas
+Python · OSMnx · GeoPandas · NetworkX · SciPy · Folium · NumPy · Pandas ·
+SQLite · python-docx · Matplotlib
 
 ---
 
-# Área de Estudo
+## Área de estudo
 
-Região de **Águas Claras — Brasília (DF)**.
-
-A escolha da região se deve à alta densidade urbana e forte presença de infraestrutura urbana, tornando-a ideal para análise de acessibilidade.
-
----
-
-# Autoria
-
-Projeto desenvolvido para estudo de:
-
-* análise urbana
-* geoprocessamento
-* modelagem espacial
-* ciência de dados aplicada a cidades
-
----
+Região administrativa de **Águas Claras — Brasília (DF)**, escolhida por sua alta
+densidade urbana, verticalização recente e forte presença de infraestrutura e
+mobilidade (metrô), o que a torna ideal para análise de acessibilidade.
