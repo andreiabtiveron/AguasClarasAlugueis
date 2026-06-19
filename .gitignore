@@ -1,6 +1,10 @@
 venv/
 __pycache__/
 cache/
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
 *.pyc
 *.pyo
 *.pyd
