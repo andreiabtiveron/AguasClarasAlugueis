@@ -1,0 +1,22 @@
+[project]
+name = "aguas-claras-new"
+version = "0.1.0"
+description = "Mapa de imóveis e qualidade de vida em Águas Claras com FastAPI e Vue."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "neo4j>=6.0.0",
+    "pydantic>=2.8.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[tool.uvicorn]
+factory = false
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
